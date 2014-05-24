@@ -1,0 +1,98 @@
+:namespace slns
+
+    ∇ R←a fft w;M;N;k;r;c;d;e;f
+      M N←⍴w
+      :If N=1
+          R←w
+      :Else
+          c←a fft w[;¯1+2×⍳N÷2]
+          d←a fft w[;2×⍳N÷2]
+          k←M(N÷2)⍴*(a×0J1×○2)×(⍳N÷2)÷N
+          r←d×k
+          e←c+r
+          f←c-r
+          R←e,f
+      :End
+    ∇
+
+    ∇ R←s fft2d a;b;c
+      b←s fft a
+      b←⍉⌽b÷(2⌷⍴a)*0.5
+      c←s fft b
+      R←⌽c÷(2⌷⍴b)*0.5
+    ∇
+
+    ∇ R←K conv M;KF;MF;F
+      KF←1 fft2d K
+      MF←1 fft2d M
+      F←KF×MF
+      R←(((1⌷⍴K)×2⌷⍴K)*0.5)×9○¯1 fft2d F
+    ∇
+
+    ∇ R←disk(ra bb RX RY);r;x;y
+      x←(¯1+RX÷2)⌽(¯1+RY÷2)⊖RY RX⍴(⍳RX)-RX÷2
+      y←⍉(¯1+RY÷2)⌽(¯1+RX÷2)⊖RX RY⍴(⍳RY)-RY÷2
+      r←((x*2)+y*2)*0.5
+      r←(r-ra-bb÷2)÷bb
+      R←1-1⌊0⌈r
+    ∇
+
+    ∇ R←sigmoid_ab(x a b ea eb)
+      R←(÷1+*-(x-a)×4÷ea)×(1-÷1+*-(x-b)×4÷eb)
+    ∇
+
+    ∇ R←sigmoid_mix(x y m em)
+      R←(x×(1-÷1+*-(m-0.5)×4÷em))+y×(÷1+*-(m-0.5)×4÷em)
+    ∇
+
+    ∇ R←snm(n m b1 b2 d1 d2 an am)
+      R←sigmoid_ab n(sigmoid_mix b1 d1 m am)(sigmoid_mix b2 d2 m am)an an
+    ∇
+           
+    ∇ endefn
+      gef←0
+    ∇
+      
+    ∇ mainloop(a D R);n;m;b;DF;RF;af;mf;nf
+      gef←1
+      DF←1 fft2d D
+      RF←1 fft2d R
+      :While gef
+          b←NY NX⍴256⊥3 NS⍴,⌈255×a
+          'BM'⎕WC'Bitmap'('CBits'b)
+          'FM'⎕WS('Picture' 'BM')
+          ⎕DL 0.01
+          af←(NS*0.5)×1 fft2d a
+          mf←af×DF
+          nf←af×RF
+          m←9○¯1 fft2d mf
+          n←9○¯1 fft2d nf
+          a←snm n m b1 b2 d1 d2 an am
+      :End
+      ⎕EX'BM'
+    ∇
+ 
+    ∇ smoothlife;a;D;R
+      NX NY←256 256
+      ra ri bb←12 4 1
+      b1 b2 d1 d2←0.278 0.365 0.267 0.445
+      an am←0.028 0.147
+     
+      D←disk ri bb NX NY
+      R←disk ra bb NX NY
+      R←R-D
+     
+      NS←NX×NY
+      a←NY NX⍴(NS÷4×ra×ra)>NS?NS
+      a←R conv a
+      a←a⌊1
+     
+      D←D÷+/,D
+      R←R÷+/,R
+     
+      'FM'⎕WC'Form' 'SmoothLife'('Event'('Close' 'endefn'))
+      mainloop&a D R
+      ⎕DQ'FM'
+    ∇
+
+:endnamespace
